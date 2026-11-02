@@ -80,3 +80,23 @@ def test_delete_message(client):
     rv = client.get('/delete/1')
     data = json.loads(rv.data)
     assert data["status"] == 1
+
+
+def test_search(client):
+    """Ensure search returns only the posts that match the query"""
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    client.post("/add", data=dict(title="Flask tips", text="Routing basics"))
+    client.post("/add", data=dict(title="Dinner", text="Pasta recipe"))
+    rv = client.get("/search/", query_string=dict(query="flask"))
+    assert rv.status_code == 200
+    assert b"Flask tips" in rv.data
+    assert b"Dinner" not in rv.data
+
+
+def test_search_without_query(client):
+    """Ensure the search page loads and lists no posts before a search"""
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    client.post("/add", data=dict(title="Flask tips", text="Routing basics"))
+    rv = client.get("/search/")
+    assert rv.status_code == 200
+    assert b"Flask tips" not in rv.data
