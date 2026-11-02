@@ -86,6 +86,29 @@ def test_delete_message(client):
     assert data["status"] == 1
 
 
+def test_delete_requires_login(client):
+    """Ensure a logged out user cannot delete a post"""
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    client.post("/add", data=dict(title="Keep me", text="Still here"))
+    logout(client)
+    rv = client.get("/delete/1")
+    assert rv.status_code == 401
+    assert json.loads(rv.data)["status"] == 0
+    rv = client.get("/")
+    assert b"Keep me" in rv.data
+
+
+def test_delete_removes_post_when_logged_in(client):
+    """Ensure a logged in user can delete a post"""
+    login(client, app.config["USERNAME"], app.config["PASSWORD"])
+    client.post("/add", data=dict(title="Delete me", text="Going away"))
+    rv = client.get("/delete/1")
+    assert rv.status_code == 200
+    assert json.loads(rv.data)["status"] == 1
+    rv = client.get("/")
+    assert b"Delete me" not in rv.data
+
+
 def test_search(client):
     """Ensure search returns only the posts that match the query"""
     login(client, app.config["USERNAME"], app.config["PASSWORD"])
