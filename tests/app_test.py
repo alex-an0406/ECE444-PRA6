@@ -1,18 +1,24 @@
+import os
 import pytest
 from pathlib import Path
 import json
 
-from project.app import app, db
-
 TEST_DB = "test.db"
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Flask-SQLAlchemy 3 binds the database when project.app is imported, so
+# changing SQLALCHEMY_DATABASE_URI in the fixture is too late. Point the app
+# at test.db before the import; this also keeps a DATABASE_URL set in the
+# shell (e.g. the Render Postgres URL) from being used by the tests.
+os.environ["DATABASE_URL"] = f"sqlite:///{BASE_DIR.joinpath(TEST_DB)}"
+
+from project.app import app, db  # noqa: E402
 
 
 @pytest.fixture
 def client():
-    BASE_DIR = Path(__file__).resolve().parent.parent
     app.config["TESTING"] = True
     app.config["DATABASE"] = BASE_DIR.joinpath(TEST_DB)
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR.joinpath(TEST_DB)}"
 
     with app.app_context():
         db.create_all()  # setup
